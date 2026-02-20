@@ -102,7 +102,7 @@ The `Decimal` type is used instead of `float` to avoid rounding errors in compar
 
  3. **Install Dependencies**
 ```bash
-  pip install -r requiremenrs.txt
+  pip install -r requirements.txt
   ```
  or else 
 ```bash
