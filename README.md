@@ -49,7 +49,7 @@ All business rules are enforced using strict Python logic:
 - County names must match a known list (using controlled fuzzy matching).
 If any rule fails, a domain specific custom exception is raised.
 
-### 3. Falgging Principle
+### 3. Flagging Principle
 
 The system does not silently correct discrepancies.  
 Invalid documents are flagged immediately with explicit error messages.
