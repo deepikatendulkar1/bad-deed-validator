@@ -3,8 +3,22 @@ from deed_validator.validation import (date_validation,amount_validation,enrich_
 from deed_validator.exceptions import (DateLogicError,AmountMismatchError,CountyNotFoundError)
 
 def deed_process(raw_text: str)->dict:
+    """
+    Main pipeline for deed document.
+    Steps:-
+    1. Parse raw text using LLM to extract structured fields.
+    2. Validate the dates.
+    3. Validate amount consistency( numeric vs words).
+    4. If the deed is valid, normalize county and calculate closing tax.
+    5. Return structured result.
+    """
+
+    # Parsing document text into structured dictionary
     data = parse_with_llm(raw_text)
+
     errors=[]
+
+    # Date Validation
     try:
         date_validation(data["date_signed"],data["date_recorded"])
         print("The Dates are valid.")
@@ -12,16 +26,19 @@ def deed_process(raw_text: str)->dict:
         errors.append(str(e))
         print("Validation on the dates failed: ",e)
 
+    # Amount Validation
     try:
         amount_validation(data["amount_numeric"], data["amount_words"])
     except AmountMismatchError as e:
         errors.append(str(e))
         print("Amount Validation failed:", e)
-
+    
+    # Final Decision If the deed is valid or not
     if errors:
         print("Deed Invalid")
     else:
         print("Deed Valid")
+        # Only Enrich if all validations pass
         try:
             data = enrich_county(data)
             data = calculate_closing_tax(data)
@@ -30,6 +47,8 @@ def deed_process(raw_text: str)->dict:
             print("Closing Tax:", data["closing_tax"])
         except Exception as e:
             print("County enrichment failed:", e)
+
+    # Return structured reponse
     return{
         "data":data,
     }

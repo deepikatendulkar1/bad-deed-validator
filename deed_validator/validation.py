@@ -1,20 +1,31 @@
 import os
 import json
 from datetime import datetime
-from text_to_num import text2num # comparing integer to string (number logic)
+from text_to_num import text2num # Used for comparing integer to string (number logic)
 from decimal import Decimal
 from thefuzz import process
 from deed_validator.exceptions import (DateLogicError,AmountMismatchError,CountyNotFoundError)
 
 def date_validation(date_signed,date_recorded):
+    """ 
+    Ensures that the recorded date is not earlier than the signed date.
+    Raises:
+    DataLogicError: Custom error if the logical ordering is violated.
+    """
     signed=datetime.fromisoformat(date_signed)
     recorded=datetime.fromisoformat(date_recorded)
     if recorded<signed:
         raise DateLogicError(f"The document was Recorded ${date_recorded} before it was Signed ${date_signed} . That's impossible.The Recorded Date cannot be before Signed Date!!")
 
 def amount_validation(amount_numeric,amount_words):
-    numeric=Decimal(str(amount_numeric))
-    words_clean= amount_words.lower().replace("dollars","").replace("only","").strip()
+    """
+    Ensures numeric and word based amounts are the same(that they match).
+    """
+    numeric=Decimal(str(amount_numeric)) 
+
+    #Normalization logic
+    words_clean= amount_words.lower().replace("dollars","").replace("only","").strip()  
+
     words_number=Decimal(text2num(words_clean,"en"))
     if numeric != words_number:
         difference=numeric-words_number
@@ -25,6 +36,9 @@ def amount_validation(amount_numeric,amount_words):
         )
 
 def enrich_county(data):
+    """
+    Ensures the county exists in the counties dataset given.
+    """
     base_dir = os.path.dirname(__file__)
     data_path = os.path.join(base_dir, "data", "counties.json")
 
@@ -33,9 +47,11 @@ def enrich_county(data):
 
     raw_county = data["county"]
     county_names = [c["name"] for c in counties]
+    # Using Fuzzy matching to handle the spelling variations
     match, score = process.extractOne(raw_county, county_names)
 
-    if score < 70:
+    # Mininum confidence threshold to aviod incorrect county mapping
+    if score < 70: 
         raise CountyNotFoundError(
             f"Low confidence county match for '{raw_county}' (score={score})"
         )
@@ -49,6 +65,11 @@ def enrich_county(data):
     return data
 
 def calculate_closing_tax(data):
+    """
+    Calulates closing tax using the property's amount and county specific tax rate.
+    """
+
+    # Used Decimal for calculations to avoid floating point precision errors
     amount = Decimal(str(data["amount_numeric"]))
     tax_rate = Decimal(str(data["tax_rate"]))
     print("tax_rate",tax_rate)
